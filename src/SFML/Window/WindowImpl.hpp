@@ -212,6 +212,10 @@ public:
     ////////////////////////////////////////////////////////////
     virtual void setKeyRepeatEnabled(bool enabled) = 0;
 
+    virtual void setRawMouseInput(bool flag) = 0;
+
+    virtual void setClippedCursor(bool clipped) = 0;
+
     ////////////////////////////////////////////////////////////
     /// \brief Request the current window to be made the active
     ///        foreground window

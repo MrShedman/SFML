@@ -331,6 +331,22 @@ void Window::setJoystickThreshold(float threshold)
 
 
 ////////////////////////////////////////////////////////////
+void Window::setRawMouseInput(bool flag)
+{
+    if (m_impl)
+        m_impl->setRawMouseInput(flag);
+}
+
+
+////////////////////////////////////////////////////////////
+void Window::setClippedCursor(bool clipped)
+{
+    if (m_impl)
+        m_impl->setClippedCursor(clipped);
+}
+
+
+////////////////////////////////////////////////////////////
 bool Window::setActive(bool active) const
 {
     if (m_context)

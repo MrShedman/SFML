@@ -169,6 +169,10 @@ public:
     ////////////////////////////////////////////////////////////
     virtual void setKeyRepeatEnabled(bool enabled);
 
+    virtual void setRawMouseInput(bool flag);
+
+    virtual void setClippedCursor(bool clipped);
+
     ////////////////////////////////////////////////////////////
     /// \brief Request the current window to be made the active
     ///        foreground window
@@ -284,6 +288,8 @@ private:
     bool     m_mouseInside;      ///< Mouse is inside the window?
     bool     m_fullscreen;       ///< Is the window fullscreen?
     bool     m_cursorGrabbed;    ///< Is the mouse cursor trapped?
+    bool	 m_usingRawInput;    ///< Is the mouse using raw inputs
+    RECT	 m_noClip;           ///< The default window clip rect
 };
 
 } // namespace priv

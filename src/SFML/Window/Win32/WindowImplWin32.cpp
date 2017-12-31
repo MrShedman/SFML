@@ -141,7 +141,8 @@ m_resizing        (false),
 m_surrogate       (0),
 m_mouseInside     (false),
 m_fullscreen      (false),
-m_cursorGrabbed   (false)
+m_cursorGrabbed   (false),
+m_usingRawInput   (false)
 {
     // Set that this process is DPI aware and can handle DPI scaling
     setProcessDpiAware();
@@ -158,6 +159,9 @@ m_cursorGrabbed   (false)
         SetWindowLongPtrW(m_handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
         m_callback = SetWindowLongPtrW(m_handle, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&WindowImplWin32::globalOnEvent));
     }
+
+    // Store the original screen sized clip
+    GetClipCursor(&m_noClip);
 }
 
 
@@ -174,7 +178,8 @@ m_resizing        (false),
 m_surrogate       (0),
 m_mouseInside     (false),
 m_fullscreen      (style & Style::Fullscreen),
-m_cursorGrabbed   (m_fullscreen)
+m_cursorGrabbed   (m_fullscreen),
+m_usingRawInput   (false)
 {
     // Set that this process is DPI aware and can handle DPI scaling
     setProcessDpiAware();
@@ -232,6 +237,9 @@ m_cursorGrabbed   (m_fullscreen)
     // Switch to fullscreen if requested
     if (m_fullscreen)
         switchToFullscreen(mode);
+
+    // Store the original screen sized clip
+    GetClipCursor(&m_noClip);
 
     // Increment window count
     windowCount++;
@@ -425,6 +433,47 @@ void WindowImplWin32::setMouseCursor(const CursorImpl& cursor)
 void WindowImplWin32::setKeyRepeatEnabled(bool enabled)
 {
     m_keyRepeatEnabled = enabled;
+}
+
+
+////////////////////////////////////////////////////////////
+void WindowImplWin32::setRawMouseInput(bool flag)
+{
+    RAWINPUTDEVICE rawMouse = { 0x01, 0x02, 0, NULL };
+    if (m_usingRawInput == flag)
+    {
+        return;
+    }
+
+    if (!flag)
+    {
+        rawMouse.dwFlags |= RIDEV_REMOVE;
+    }
+
+    m_usingRawInput = flag;
+
+    // Unregister / register raw input for mice
+    RegisterRawInputDevices(&rawMouse, 1, sizeof(RAWINPUTDEVICE));
+}
+
+
+////////////////////////////////////////////////////////////
+void WindowImplWin32::setClippedCursor(bool clipped)
+{
+    RECT m_clip;
+
+    if (clipped)
+    {
+        GetClientRect(m_handle, (LPRECT)&m_clip);
+        ClientToScreen(m_handle, (LPPOINT)&m_clip.left);
+        ClientToScreen(m_handle, (LPPOINT)&m_clip.right);
+
+        ClipCursor(&m_clip);
+    }
+    else
+    {
+        ClipCursor(&m_noClip);
+    }
 }
 
 
@@ -910,6 +959,31 @@ void WindowImplWin32::processEvent(UINT message, WPARAM wParam, LPARAM lParam)
                 Event event;
                 event.type = Event::MouseLeft;
                 pushEvent(event);
+            }
+            break;
+        }
+
+        // Mouse motion event (raw input)
+        case WM_INPUT:
+        {
+            HRAWINPUT hRawInput = (HRAWINPUT)lParam;
+            RAWINPUT input;
+            UINT size = sizeof(input);
+
+            GetRawInputData(hRawInput, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER));
+
+            if (input.header.dwType == RIM_TYPEMOUSE)
+            {
+                RAWMOUSE* rawmouse = &input.data.mouse;
+
+                if ((rawmouse->usFlags & 0x01) == MOUSE_MOVE_RELATIVE)
+                {
+                    Event event;
+                    event.type = Event::MouseMotion;
+                    event.mouseMotion.dx = rawmouse->lLastX;
+                    event.mouseMotion.dy = rawmouse->lLastY;
+                    pushEvent(event);
+                }
             }
             break;
         }

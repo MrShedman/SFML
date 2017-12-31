@@ -425,6 +425,10 @@ public:
     ////////////////////////////////////////////////////////////
     void setJoystickThreshold(float threshold);
 
+    void setRawMouseInput(bool flag);
+
+    void setClippedCursor(bool clipped);
+
     ////////////////////////////////////////////////////////////
     /// \brief Activate or deactivate the window as the current target
     ///        for OpenGL rendering
